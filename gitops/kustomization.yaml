@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - kafka/kafka-statefulset.yaml
+  - producer/producer-job.yaml
+  - consumer/consumer.yaml
+  - monitoring/namespace.yaml
+  - monitoring/kube-prometheus-stack.yaml

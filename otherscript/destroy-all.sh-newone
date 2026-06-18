@@ -1,0 +1,223 @@
+AWS_REGION="ap-south-1"
+CLUSTER_NAME="devops-eks"
+
+export AWS_REGION
+export CLUSTER_NAME
+
+echo ""
+echo "Deleting Load Balancers..."
+
+for LB in $(aws elbv2 describe-load-balancers \
+  --region "$AWS_REGION" \
+  --query 'LoadBalancers[*].LoadBalancerArn' \
+  --output text 2>/dev/null)
+do
+    aws elbv2 delete-load-balancer \
+      --load-balancer-arn "$LB" \
+      --region "$AWS_REGION" || true
+done
+
+for LB in $(aws elb describe-load-balancers \
+  --region "$AWS_REGION" \
+  --query 'LoadBalancerDescriptions[*].LoadBalancerName' \
+  --output text 2>/dev/null)
+do
+    aws elb delete-load-balancer \
+      --load-balancer-name "$LB" \
+      --region "$AWS_REGION" || true
+done
+
+echo ""
+echo "Waiting for ELB resources to disappear..."
+sleep 180
+
+echo ""
+echo "Deleting NAT Gateways..."
+
+for NAT in $(aws ec2 describe-nat-gateways \
+  --region "$AWS_REGION" \
+  --query 'NatGateways[?State!=`deleted`].NatGatewayId' \
+  --output text)
+do
+    aws ec2 delete-nat-gateway \
+      --nat-gateway-id "$NAT" \
+      --region "$AWS_REGION" || true
+done
+
+while true
+do
+    NAT_COUNT=$(aws ec2 describe-nat-gateways \
+      --region "$AWS_REGION" \
+      --query 'length(NatGateways[?State!=`deleted`])' \
+      --output text 2>/dev/null || echo 0)
+
+    [ "$NAT_COUNT" = "0" ] && break
+
+    echo "Waiting for NAT Gateways ($NAT_COUNT remaining)..."
+    sleep 30
+done
+
+echo ""
+echo "Releasing Elastic IPs..."
+
+for EIP in $(aws ec2 describe-addresses \
+  --region "$AWS_REGION" \
+  --query 'Addresses[*].AllocationId' \
+  --output text)
+do
+    aws ec2 release-address \
+      --allocation-id "$EIP" \
+      --region "$AWS_REGION" || true
+done
+
+echo ""
+echo "Deleting orphan ENIs..."
+
+for ENI in $(aws ec2 describe-network-interfaces \
+  --region "$AWS_REGION" \
+  --query 'NetworkInterfaces[?Status==`available`].NetworkInterfaceId' \
+  --output text)
+do
+    aws ec2 delete-network-interface \
+      --network-interface-id "$ENI" \
+      --region "$AWS_REGION" || true
+done
+
+DEVOPS_VPCS=$(aws ec2 describe-vpcs \
+  --region "$AWS_REGION" \
+  --query "Vpcs[?Tags[?Key=='Name' && Value=='devops-vpc']].VpcId" \
+  --output text)
+
+MAX_RETRIES=15
+
+for VPC in $DEVOPS_VPCS
+do
+    echo ""
+    echo "======================================"
+    echo "Cleaning VPC: $VPC"
+    echo "======================================"
+
+    for TRY in $(seq 1 $MAX_RETRIES)
+    do
+        echo "Cleanup pass $TRY"
+
+        # VPC Endpoints
+        for VPCE in $(aws ec2 describe-vpc-endpoints \
+          --filters Name=vpc-id,Values=$VPC \
+          --query 'VpcEndpoints[*].VpcEndpointId' \
+          --output text \
+          --region "$AWS_REGION")
+        do
+            aws ec2 delete-vpc-endpoints \
+              --vpc-endpoint-ids "$VPCE" \
+              --region "$AWS_REGION" || true
+        done
+
+        # ENIs
+        for ENI in $(aws ec2 describe-network-interfaces \
+          --filters Name=vpc-id,Values=$VPC \
+          --query 'NetworkInterfaces[?Status==`available`].NetworkInterfaceId' \
+          --output text \
+          --region "$AWS_REGION")
+        do
+            aws ec2 delete-network-interface \
+              --network-interface-id "$ENI" \
+              --region "$AWS_REGION" || true
+        done
+
+        # Blackhole routes
+        for RTB in $(aws ec2 describe-route-tables \
+          --filters Name=vpc-id,Values=$VPC \
+          --query 'RouteTables[*].RouteTableId' \
+          --output text \
+          --region "$AWS_REGION")
+        do
+            for CIDR in $(aws ec2 describe-route-tables \
+              --route-table-ids "$RTB" \
+              --query 'RouteTables[].Routes[?State==`blackhole`].DestinationCidrBlock' \
+              --output text \
+              --region "$AWS_REGION")
+            do
+                aws ec2 delete-route \
+                  --route-table-id "$RTB" \
+                  --destination-cidr-block "$CIDR" \
+                  --region "$AWS_REGION" || true
+            done
+        done
+
+        # Route table associations
+        for ASSOC in $(aws ec2 describe-route-tables \
+          --filters Name=vpc-id,Values=$VPC \
+          --query 'RouteTables[].Associations[?Main!=`true`].RouteTableAssociationId' \
+          --output text \
+          --region "$AWS_REGION")
+        do
+            aws ec2 disassociate-route-table \
+              --association-id "$ASSOC" \
+              --region "$AWS_REGION" || true
+        done
+
+        # Route tables
+        for RTB in $(aws ec2 describe-route-tables \
+          --filters Name=vpc-id,Values=$VPC \
+          --query 'RouteTables[?Associations[?Main==`true`]==`[]`].RouteTableId' \
+          --output text \
+          --region "$AWS_REGION")
+        do
+          aws ec2 delete-route-table \
+            --route-table-id "$RTB" \
+            --region "$AWS_REGION" || true
+        done
+
+        # Security groups
+        for SG in $(aws ec2 describe-security-groups \
+          --filters Name=vpc-id,Values=$VPC \
+          --query 'SecurityGroups[?GroupName!=`default`].GroupId' \
+          --output text \
+          --region "$AWS_REGION")
+        do
+            aws ec2 delete-security-group \
+              --group-id "$SG" \
+              --region "$AWS_REGION" || true
+        done
+
+        # Subnets
+        for SUBNET in $(aws ec2 describe-subnets \
+          --filters Name=vpc-id,Values=$VPC \
+          --query 'Subnets[*].SubnetId' \
+          --output text \
+          --region "$AWS_REGION")
+        do
+            aws ec2 delete-subnet \
+              --subnet-id "$SUBNET" \
+              --region "$AWS_REGION" || true
+        done
+
+        # Internet gateways
+        for IGW in $(aws ec2 describe-internet-gateways \
+          --filters Name=attachment.vpc-id,Values=$VPC \
+          --query 'InternetGateways[*].InternetGatewayId' \
+          --output text \
+          --region "$AWS_REGION")
+        do
+            aws ec2 detach-internet-gateway \
+              --internet-gateway-id "$IGW" \
+              --vpc-id "$VPC" \
+              --region "$AWS_REGION" || true
+
+            aws ec2 delete-internet-gateway \
+              --internet-gateway-id "$IGW" \
+              --region "$AWS_REGION" || true
+        done
+
+        if aws ec2 delete-vpc \
+            --vpc-id "$VPC" \
+            --region "$AWS_REGION" >/dev/null 2>&1
+        then
+            echo "Deleted $VPC"
+            break
+        fi
+
+        sleep 20
+    done
+done

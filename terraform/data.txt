@@ -1,0 +1,175 @@
+/Users/amit.singh/DevOps-Challenge-main
+├── bootstrap-eks.sh
+├── consumer
+│   ├── consumer.py
+│   └── Dockerfile
+├── deploy.sh
+├── docs
+├── gitops
+│   ├── applications
+│   │   └── kafka-demo.yaml
+│   ├── consumer
+│   │   └── consumer.yaml
+│   ├── kafka
+│   │   └── kafka-statefulset.yaml
+│   ├── kustomization.yaml
+│   ├── monitoring
+│   │   ├── kube-prometheus-stack.yaml
+│   │   └── namespace.yaml
+│   ├── namespace.yaml
+│   └── producer
+│       └── producer-job.yaml
+├── k8s
+│   └── apps
+│       ├── consumer.yaml
+│       ├── kafka-statefulset.yaml
+│       ├── producer-job.yaml
+│       └── topic-job.yaml
+├── producer
+│   ├── Dockerfile
+│   └── producer.py
+├── README.md
+├── scripts
+│   ├── cleanup.sh
+│   ├── logs.sh
+│   ├── rebuild-consumer.sh
+│   ├── rebuild-producer.sh
+│   ├── reset-minikube.sh
+│   ├── restart-kafka.sh
+│   ├── start-env.sh
+│   ├── start-kafka-lab.sh
+│   ├── stop-all.sh
+│   └── with-kraft-start-kafka-lab.sh
+├── scripts-cloud
+│   └── destroy-eks.sh
+└── terraform
+    ├── data.txt
+    ├── ecr.tf
+    ├── eks.tf
+    ├── outputs.tf
+    ├── provider.tf
+    ├── terraform.tfstate
+    ├── terraform.tfstate.1780663566.backup
+    ├── terraform.tfstate.1780740595.backup
+    ├── terraform.tfstate.1780740601.backup
+    ├── terraform.tfstate.1780740653.backup
+    ├── terraform.tfstate.1780740789.backup
+    ├── terraform.tfstate.1780740796.backup
+    ├── terraform.tfstate.backup
+    ├── variables.tf
+    └── vpc.tf
+
+15 directories, 45 files
+=================================================
+
+cat ~/DevOps-Challenge-main/terraform/eks.tf
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 21.0"
+
+  name               = var.cluster_name
+  kubernetes_version = "1.32"
+
+  endpoint_public_access = true
+
+  authentication_mode = "API_AND_CONFIG_MAP"
+
+  enable_cluster_creator_admin_permissions = true
+  create_cloudwatch_log_group              = false
+  addons = {
+    coredns = {}
+
+    kube-proxy = {}
+
+    vpc-cni = {}
+  }
+
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
+
+  eks_managed_node_groups = {
+    main = {
+      instance_types = ["t3.large"]
+
+      ami_type = "AL2023_x86_64_STANDARD"
+
+      min_size     = 2
+      max_size     = 4
+      desired_size = 2
+
+      capacity_type = "ON_DEMAND"
+
+      disk_size = 50
+    }
+  }
+}
+
+=========================
+
+
+
+ cat ~/DevOps-Challenge-main/terraform/provider.tf
+terraform {
+  required_version = ">= 1.5"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.42.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+}
+
+
+
+=======================
+
+
+cat ~/DevOps-Challenge-main/terraform/ecr.tf
+# resource "aws_ecr_repository" "producer" {
+#   name         = "kafka-producer"
+#   force_delete = true
+# }
+
+# resource "aws_ecr_repository" "consumer" {
+#   name         = "kafka-consumer"
+#   force_delete = true
+# }
+
+
+===============================
+
+
+ ~/DevOps-Challenge-main/terraform % cat ~/DevOps-Challenge-main/terraform/outputs.tf
+output "cluster_name" {
+  value = module.eks.cluster_name
+}
+
+output "cluster_endpoint" {
+  value = module.eks.cluster_endpoint
+}
+
+output "producer_repo" {
+  value = aws_ecr_repository.producer.repository_url
+}
+
+output "consumer_repo" {
+  value = aws_ecr_repository.consumer.repository_url
+}
+
+=======================
+ ~/DevOps-Challenge-main/terraform % cat ~/DevOps-Challenge-main/terraform/ecr.tf
+resource "aws_ecr_repository" "producer" {
+  name         = "kafka-producer"
+  force_delete = true
+}
+
+resource "aws_ecr_repository" "consumer" {
+  name         = "kafka-consumer"
+  force_delete = true
+}%
+ ~/DevOps-Challenge-main/terraform %

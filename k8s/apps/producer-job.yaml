@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+
+metadata:
+  name: producer
+  namespace: kafka-demo
+
+spec:
+  template:
+    metadata:
+      labels:
+        app: producer
+
+    spec:
+      restartPolicy: Never
+
+      containers:
+      - name: producer
+        image: producer:v1
+        imagePullPolicy: IfNotPresent
+
+        env:
+        - name: KAFKA_BROKER_URL
+          value: "kafka:9092"
+
+        - name: KAFKA_TOPIC
+          value: "posts"

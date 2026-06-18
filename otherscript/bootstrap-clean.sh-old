@@ -1,0 +1,129 @@
+#!/bin/bash
+
+set -euo pipefail
+
+PROJECT_DIR="$HOME/DevOps-Challenge-main"
+TERRAFORM_DIR="$PROJECT_DIR/terraform"
+
+AWS_REGION="ap-south-1"
+CLUSTER_NAME="devops-eks"
+
+echo "=================================================="
+echo "BOOTSTRAP DEVOPS CHALLENGE"
+echo "=================================================="
+
+aws sts get-caller-identity
+
+cd "$PROJECT_DIR"
+
+echo ""
+echo "Updating Git..."
+
+git fetch origin || true
+git pull origin main || true
+
+cd "$TERRAFORM_DIR"
+
+echo ""
+echo "Terraform Init..."
+
+terraform init -upgrade
+
+echo ""
+echo "Terraform Validate..."
+
+terraform validate
+
+echo ""
+echo "Import existing ECR repos if present..."
+
+terraform import aws_ecr_repository.producer kafka-producer 2>/dev/null || true
+terraform import aws_ecr_repository.consumer kafka-consumer 2>/dev/null || true
+
+echo ""
+echo "Terraform Plan..."
+
+terraform plan
+
+echo ""
+read -p "Proceed with deployment? (y/n): " choice
+
+if [ "$choice" != "y" ]
+then
+    exit 1
+fi
+
+echo ""
+echo "Terraform Apply..."
+
+terraform apply -auto-approve
+
+echo ""
+echo "Waiting for EKS..."
+
+until [ "$(aws eks describe-cluster --name "$CLUSTER_NAME" --region "$AWS_REGION" --query 'cluster.status' --output text 2>/dev/null)" = "ACTIVE" ]
+do
+    echo "Waiting for cluster..."
+    sleep 30
+done
+
+echo ""
+echo "Updating kubeconfig..."
+
+aws eks update-kubeconfig \
+  --name "$CLUSTER_NAME" \
+  --region "$AWS_REGION"
+
+echo ""
+echo "Waiting for nodes..."
+
+until kubectl get nodes >/dev/null 2>&1
+do
+    echo "Waiting for Kubernetes API..."
+    sleep 15
+done
+
+kubectl get nodes -o wide
+
+echo ""
+echo "Installing ArgoCD..."
+
+kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl apply \
+  -n argocd \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+echo ""
+echo "Waiting for ArgoCD..."
+
+kubectl wait \
+  --for=condition=available deployment/argocd-server \
+  -n argocd \
+  --timeout=900s
+
+echo ""
+echo "Deploying GitOps app..."
+
+kubectl apply -f "$PROJECT_DIR/gitops/applications/kafka-demo.yaml"
+
+echo ""
+echo "Applications:"
+
+kubectl get applications -n argocd || true
+
+echo ""
+echo "ArgoCD Password:"
+
+kubectl get secret argocd-initial-admin-secret \
+  -n argocd \
+  -o jsonpath="{.data.password}" | base64 -d
+
+echo ""
+echo ""
+
+echo "ArgoCD Access:"
+echo "kubectl port-forward svc/argocd-server -n argocd 8080:443"
+
+echo ""
+echo "Bootstrap Complete"

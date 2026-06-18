@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: kafka-demo
+  namespace: argocd
+
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/mramitsingh85/kafkacluster.git
+    targetRevision: main
+    path: gitops
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kafka-demo
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true

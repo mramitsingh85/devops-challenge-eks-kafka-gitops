@@ -1,0 +1,78 @@
+#!/bin/bash
+set -euo pipefail
+
+PROJECT_DIR="$HOME/DevOps-Challenge-main"
+TERRAFORM_DIR="$PROJECT_DIR/terraform"
+
+AWS_REGION="ap-south-1"
+CLUSTER_NAME="devops-eks"
+
+echo "BOOTSTRAP DEVOPS CHALLENGE"
+
+aws sts get-caller-identity
+
+cd "$PROJECT_DIR"
+git fetch origin main
+git pull origin main
+
+cd "$TERRAFORM_DIR"
+rm -rf .terraform
+terraform init -upgrade
+terraform validate
+terraform apply -auto-approve
+
+until aws eks describe-cluster --name "$CLUSTER_NAME" --region "$AWS_REGION" --query 'cluster.status' --output text 2>/dev/null | grep -q ACTIVE
+do
+  sleep 30
+done
+
+aws eks update-kubeconfig --region "$AWS_REGION" --name "$CLUSTER_NAME"
+
+until kubectl get nodes >/dev/null 2>&1
+do
+  sleep 10
+done
+
+for addon in vpc-cni kube-proxy coredns
+do
+  if ! aws eks describe-addon --cluster-name "$CLUSTER_NAME" --addon-name "$addon" --region "$AWS_REGION" >/dev/null 2>&1
+  then
+    aws eks create-addon --cluster-name "$CLUSTER_NAME" --addon-name "$addon" --region "$AWS_REGION" || true
+  fi
+done
+
+for addon in vpc-cni kube-proxy coredns
+do
+  while true
+  do
+    STATUS=$(aws eks describe-addon --cluster-name "$CLUSTER_NAME" --addon-name "$addon" --region "$AWS_REGION" --query 'addon.status' --output text 2>/dev/null || echo MISSING)
+    [ "$STATUS" = "ACTIVE" ] && break
+    sleep 20
+  done
+done
+
+kubectl rollout status daemonset/aws-node -n kube-system --timeout=600s
+kubectl wait --for=condition=Ready nodes --all --timeout=900s
+
+kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl delete crd applicationsets.argoproj.io --ignore-not-found=true
+kubectl delete crd applications.argoproj.io --ignore-not-found=true
+kubectl delete crd appprojects.argoproj.io --ignore-not-found=true
+
+sleep 10
+
+kubectl apply --server-side --force-conflicts -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+kubectl rollout status deployment/argocd-server -n argocd --timeout=900s
+kubectl rollout status deployment/argocd-repo-server -n argocd --timeout=900s
+
+kubectl apply -f "$PROJECT_DIR/gitops/applications/kafka-demo.yaml"
+
+kubectl get nodes
+kubectl get pods -A
+
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
+
+echo
+echo "READY"

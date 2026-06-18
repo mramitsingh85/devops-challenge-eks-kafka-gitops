@@ -1,0 +1,977 @@
+
+
+Tuesday, 19 May 2026
+7:02 PM
+
+Devops Interview Master Question Bank 2026
+DevOps Interview Master Question Bank 2026
+Prepared for: DevOps / Cloud / Platform Engineering Interviews
+Topics Covered:
+  • Kubernetes
+  • Terraform
+  • GitHub Actions
+  • Helm
+  • Argo CD
+  • Grafana & Prometheus
+  • Azure Cloud
+  • Kafka
+
+Kubernetes — Most Asked Interview Questions
+  What is Kubernetes?
+  
+Kubernetes is an open-source container orchestration platform that automates the deployment, scaling, and management of containerized applications. It groups containers into logical units for easy discovery and management, ensuring high availability through automated self-healing. By continuously matching your system's actual state to your desired state, it eliminates manual operational tasks.
+
+  Difference between Docker and Kubernetes?
+  
+Docker is a tool for creating and running individual containers, while Kubernetes is a platform for managing and coordinating many containers across a cluster of machines
+
+
+
+  What is a Pod?
+
+Pods in k8s are the smallest deployable units of compute. They encapsulate containers and provide shared storage, network resources, and a specification for running the container.
+
+  Difference between Pod and Container?
+
+A container is a lightweight, isolated software package that runs a single application and its dependencies. A pod is the smallest deployable unit in Kubernetes. It acts as a wrapper that holds one or more containers, providing them with shared storage and a shared network
+
+  What is Deployment?
+  
+
+Deployment is the process of releasing application code or updates to an environment like development, staging, or production so users can access it.  
+
+In DevOps, deployment is usually automated using CI/CD pipelines to ensure zero downtime, consistency, monitoring, and easy rollback in case of failure.
+
+Deployment is the process of releasing and running an application or a new version of code in an environment such as development, staging, or production so that users can access it.
+In DevOps, deployment is not just copying files to a server. It includes:
+  • building the application
+  • packaging
+  • configuration management
+  • infrastructure provisioning
+  • application rollout
+  • validation
+  • rollback if failure happens
+A smart production-grade answer:
+  Deployment is the automated and controlled process of delivering application code, configuration, and infrastructure changes to target environments with minimum downtime and risk. In modern DevOps, deployments are usually handled through CI/CD pipelines using tools like Jenkins, GitHub Actions, ArgoCD, Kubernetes, Helm, and Terraform.
+Types of Deployment
+1. Manual Deployment
+Engineer manually copies files or runs commands.
+Example:
+scp app.jar user@server:/opt/app/
+systemctl restart app
+Problem:
+  • error-prone
+  • not scalable
+  • inconsistent
+
+2. Automated Deployment
+CI/CD pipeline handles deployment automatically.
+Flow:
+Developer Pushes Code
+        ↓
+GitHub/GitLab
+        ↓
+CI Tool Builds App
+        ↓
+Run Tests
+        ↓
+Docker Image Build
+        ↓
+Push to Registry
+        ↓
+Deploy to Kubernetes/Servers
+
+Common Deployment Strategies
+Rolling Deployment
+Replace old pods gradually.
+Example in Kubernetes:
+kubectl rollout restart deployment nginx
+Benefit:
+  • zero downtime
+
+Blue-Green Deployment
+Two environments:
+  • Blue = current production
+  • Green = new version
+Traffic switches after validation.
+Benefit:
+  • instant rollback
+
+Canary Deployment
+Release to small % users first.
+Example:
+  • 5% users get new version
+  • monitor errors
+  • increase gradually
+Used heavily in:
+  • Kubernetes
+  • service mesh
+  • cloud-native apps
+
+Kubernetes Deployment Example
+Create deployment:
+kubectl create deployment nginx --image=nginx
+Check deployment:
+kubectl get deployment
+Scale deployment:
+kubectl scale deployment nginx --replicas=3
+Update image:
+kubectl set image deployment/nginx nginx=nginx:1.25
+Rollback:
+kubectl rollout undo deployment/nginx
+
+Senior-Level Interview Add-on
+A senior engineer should mention:
+  • rollback strategy
+  • monitoring after deployment
+  • health checks
+  • automation
+  • security
+  • zero downtime
+  • observability
+  • change management
+Example answer:
+  In production, deployment should always include readiness probes, health checks, monitoring, rollback mechanisms, and automated validation to reduce business impact during failures.
+
+Real Production Scenario
+  We used GitHub Actions + ArgoCD for GitOps deployment into Kubernetes. Once developers merged code into the main branch, the pipeline built the Docker image, scanned it using Trivy, pushed it to ECR, and updated Helm values in the GitOps repo. ArgoCD automatically synchronized changes to the Kubernetes cluster using rolling deployment strategy.
+This sounds very strong in interviews.
+
+Difference Between Deployment and Release
+Many interviewers ask this follow-up.
+Deployment  Release
+Code moved to production  Feature exposed to users
+Technical activity  Business activity
+Can happen silently Usually visible to users
+Example:
+Feature deployed today but enabled next week using feature flag.
+
+Easy Memory Trick
+Think:
+Build → Test → Package → Deploy → Monitor
+Or:
+Code reaches users = Deployment
+
+Common Mistakes Candidates Make
+Weak answer:
+  Deployment means moving code to server.
+Strong answer:
+  Deployment is an automated, controlled release process involving application rollout, validation, monitoring, and rollback strategies across environments.
+That difference separates junior vs senior candidates.
+
+
+
+  What is ReplicaSet?
+
+
+A ReplicaSet in Kubernetes ensures that a specified number of pod replicas are always running. If a pod fails or gets deleted, the ReplicaSet automatically creates a new one to maintain the desired state.
+It provides high availability and scaling, and is usually managed by a Kubernetes Deployment.
+
+  
+  What is StatefulSet?
+  
+  
+
+A StatefulSet is a Kubernetes workload used for stateful applications where each pod needs:
+  • stable hostname
+  • persistent storage
+  • fixed identity
+  • ordered startup/shutdown
+Used mainly for databases like MySQL, MongoDB, or Kafka.
+Example:
+kubectl get pods
+mysql-0
+mysql-1
+mysql-2
+Even after restart, pod names and storage remain same.
+Key difference:
+  • Deployment → stateless apps
+  • StatefulSet → stateful apps
+Production use case:
+  We used StatefulSet for Kafka because brokers required stable network identity and persistent volumes to avoid data loss during pod rescheduling.
+Common mistake:
+Using Deployment for databases can cause data inconsistency or storage issues.
+Follow-up interviewer may ask:
+  • Difference between StatefulSet and Deployment?
+  • How persistent volumes work with StatefulSet?
+  • Why Headless Service is required in StatefulSet?
+Easy memory trick:
+StatefulSet = Stateful application + Stable Identity
+
+
+  1. What is DaemonSet?
+
+A DaemonSet in Kubernetes ensures that a specific pod runs on all nodes or selected nodes in a cluster automatically.
+It is mainly used for node-level services like:
+  • log collection
+  • monitoring agents
+  • security agents
+  • networking components
+Common examples:
+  • Fluentd
+  • Prometheus Node Exporter
+  • Datadog agents
+Real-world example:
+  We used DaemonSet to deploy Fluentd on every Kubernetes worker node so logs from all containers were automatically collected and sent to Elasticsearch.
+Check DaemonSet:
+
+kubectl get daemonset -A
+
+Common mistake:
+Using Deployment instead of DaemonSet for node-level agents.
+Easy memory trick:
+One Pod Per Node = DaemonSet
+
+  What is Namespace?
+
+A Namespace in Kubernetes is a logical isolation mechanism used to separate and organize resources within the same cluster.
+It helps manage:
+  • environments like dev, test, prod
+  • team-based isolation
+  • resource quotas
+  • access control using RBAC
+Example:
+kubectl get namespaces
+kubectl create namespace production
+Real-world scenario:
+  We used separate namespaces for dev, staging, and production to isolate workloads, apply resource limits, and control user access securely.
+Common mistake:
+Deploying everything in the default namespace in production environments.
+Easy memory trick:
+Namespace = Virtual Cluster Inside Kubernetes Cluster
+
+  1. What is Service in Kubernetes?
+
+A Service in Kubernetes is an abstraction layer that provides a stable network endpoint to access pods, even if pod IPs change after restart or scaling.
+It enables:
+  • pod-to-pod communication 
+  • load balancing 
+  • service discovery 
+  • external/internal application access 
+Main types:
+  • ClusterIP → internal communication 
+  • NodePort → expose app via node IP and port 
+  • LoadBalancer → cloud external load balancer 
+  • ExternalName → map external DNS 
+Example:
+
+kubectl get svc
+kubectl expose deployment nginx --port=80 --type=LoadBalancer
+Real-world scenario:
+  We used ClusterIP for microservice communication inside the cluster and LoadBalancer service to expose frontend applications publicly through AWS ELB.
+Common mistake:
+Trying to access pods directly instead of using Services.
+Follow-up interviewer may ask:
+  • Difference between Service and Ingress? 
+  • How kube-proxy works? 
+  • What is headless service? 
+Easy memory trick:
+
+Pods change, Service remains stable.
+
+  1. Types of Services?
+
+Main types of Services in Kubernetes:
+1. ClusterIP (Default)
+Exposes service internally within the cluster only.
+Use case:
+  • microservice communication
+type: ClusterIP
+
+2. NodePort
+Exposes application on a static port of every node.
+Access:
+<NodeIP>:<NodePort>
+Use case:
+  • testing
+  • non-production external access
+
+3. LoadBalancer
+Creates cloud load balancer automatically.
+Used in cloud platforms like:
+  • Amazon Web Services
+  • Microsoft Azure
+  • Google Cloud
+Use case:
+  • production public applications
+
+4. ExternalName
+Maps Kubernetes service to external DNS name.
+Example:
+type: ExternalName
+externalName: google.com
+Use case:
+  • external database or third-party service integration
+
+5. Headless Service
+Created using:
+clusterIP: None
+Used mainly with StatefulSet for direct pod communication.
+Use case:
+  • Kafka
+  • MongoDB
+  • database clustering
+
+Real-world production usage:
+  We used ClusterIP for backend APIs, LoadBalancer for frontend applications, and Headless Services with Kafka StatefulSet for broker discovery.
+Easy memory trick:
+ClusterIP → Internal  
+NodePort → Node Access  
+LoadBalancer → Public Access  
+ExternalName → External DNS  
+Headless → Direct Pod Access
+
+Difference between ClusterIP, NodePort, and LoadBalancer?
+
+ClusterIP, NodePort, and LoadBalancer are Kubernetes Service types used to expose applications differently.
+  • ClusterIP exposes the application only inside the Kubernetes cluster. 
+  • NodePort exposes the application externally using <NodeIP>:Port. 
+  • LoadBalancer exposes the application to the internet using a cloud provider load balancer. 
+Real-world:
+  In production, we usually use ClusterIP for internal microservices and LoadBalancer for public-facing applications. NodePort is mostly used for testing or debugging.
+
+
+
+ What is Ingress?
+
+Ingress in Kubernetes is an API object that manages external HTTP/HTTPS access to services inside the cluster using a single entry point.
+It provides:
+  • URL-based routing
+  • host-based routing
+  • SSL termination
+  • reverse proxy functionality
+  • load balancing
+Instead of exposing multiple LoadBalancers, Ingress exposes all applications through one controller like NGINX Ingress Controller.
+Real-world example:
+  We used NGINX Ingress Controller to route traffic like /api to backend service and / to frontend service with SSL enabled using TLS certificates.
+Example:
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+Easy memory trick:
+Ingress = Smart Traffic Router for Kubernetes
+
+
+
+  Difference between Ingress and LoadBalancer?
+
+      
+LoadBalancer exposes a single service externally using a cloud load balancer, while Ingress manages and routes external HTTP/HTTPS traffic to multiple services through one entry point.
+  • LoadBalancer works at Layer 4 (TCP/UDP)
+  • Ingress works at Layer 7 (HTTP/HTTPS)
+Real-world:
+  Instead of creating multiple LoadBalancers for each application, we used one Ingress Controller to route traffic for multiple domains and paths, reducing cloud cost and simplifying SSL management.
+Example:
+app.com → frontend service
+app.com/api → backend service
+Easy memory trick:
+LoadBalancer = Expose Service  
+Ingress = Route Traffic
+
+  What is ConfigMap?
+  
+  A ConfigMap in Kubernetes is used to store non-sensitive configuration data separately from application containers.
+  It helps make applications configurable without rebuilding Docker images.
+  Used for:
+    • environment variables
+    • application configs
+    • config files
+    • command-line arguments
+  Real-world:
+    We stored application properties and environment-specific configs in ConfigMaps so the same container image could be deployed across dev, staging, and production.
+  Example:
+  kubectl create configmap app-config --from-literal=ENV=prod
+  Common mistake:
+  Storing passwords or secrets in ConfigMap instead of Secret.
+  Easy memory trick:
+  ConfigMap = Non-sensitive application configuration
+  
+
+   
+
+  What is Secret?
+          
+     
+A Secret in Kubernetes is used to securely store sensitive information such as passwords, API keys, tokens, and certificates.
+Secrets are base64-encoded and can be mounted as environment variables or files inside pods.
+Real-world:
+  We stored database credentials and TLS certificates in Kubernetes Secrets instead of hardcoding them inside application code or Docker images.
+Example:
+kubectl create secret generic db-secret \
+--from-literal=username=admin \
+--from-literal=password=pass123
+Common mistake:
+Storing sensitive data in ConfigMap instead of Secret.
+Easy memory trick:
+Secret = Sensitive configuration storage
+
+
+  Difference between ConfigMap and Secret?
+
+ConfigMap stores non-sensitive configuration data, while Secret stores sensitive information like passwords, tokens, and certificates.
+  • ConfigMap → plain configuration
+  • Secret → sensitive/secure data
+Real-world:
+  We used ConfigMap for application environment settings and Secrets for database passwords and API keys.
+Example:
+ConfigMap → ENV=prod
+Secret → DB_PASSWORD=******
+Common mistake:
+Keeping credentials inside ConfigMap or hardcoding them in YAML files.
+Easy memory trick:
+ConfigMap = Public Config  
+Secret = Private Config
+
+  What are liveness and readiness probes?
+
+Liveness and Readiness probes are Kubernetes health checks used to monitor application status inside containers.
+  • Liveness Probe checks whether the application is alive. If it fails, Kubernetes restarts the container.
+  • Readiness Probe checks whether the application is ready to serve traffic. If it fails, traffic is stopped temporarily without restarting the container.
+Real-world:
+  We used readiness probes to avoid sending traffic before the application completed startup and liveness probes to auto-recover hung applications.
+Example:
+livenessProbe:
+readinessProbe:
+Easy memory trick:
+Liveness = Should container restart?  
+Readiness = Should traffic go to pod?
+
+
+  1. What is Persistent Volume?
+  2. What is Persistent Volume Claim?
+  3. What happens if a Pod crashes?
+  4. How does Kubernetes scheduling work?
+  5. What is kubelet?
+  6. What is kube-proxy?
+  7. What is etcd?
+  8. What is CNI?
+  9. How does service discovery work?
+  10. How do rolling updates work?
+  11. How do you rollback a deployment?
+  12. Common kubectl troubleshooting commands?
+  13. How do you debug CrashLoopBackOff?
+  14. Difference between requests and limits?
+  15. How do you scale pods?
+  16. What is HPA?
+  17. How do you secure Kubernetes clusters?
+
+Kubernetes — Scenario-Based + Practical Questions
+  1. One pod is continuously restarting. How do you troubleshoot?
+  2. Application is not accessible outside cluster. What will you check?
+  3. Pods are in Pending state. Possible reasons?
+  4. One node becomes NotReady. What happens?
+  5. Deployment updated but old version still serving traffic. Why?
+  6. CPU usage suddenly increased in production cluster. How will you investigate?
+  7. Pod cannot connect to database. Troubleshooting steps?
+  8. DNS resolution inside pod is failing.
+  9. How do you debug CrashLoopBackOff?
+  10. ImagePullBackOff issue troubleshooting?
+  11. How do you rollback a bad deployment?
+  12. How do you scale application during traffic spike?
+  13. A secret changed but pod still uses old value.
+  14. How do you migrate app with zero downtime?
+  15. Kubernetes upgrade failed. Recovery approach?
+  16. Ingress returning 502/503 errors.
+  17. One service is slow only in Kubernetes, not in VM.
+  18. How do you troubleshoot memory leaks in pods?
+  19. Persistent volume not mounting.
+  20. Stateful application data lost after restart.
+  21. Multiple pods unevenly distributed across nodes.
+  22. Node disk pressure issue.
+  23. Kubernetes API server becomes unavailable.
+  24. One namespace consuming all resources.
+  25. Cluster networking broken after CNI update.
+  26. How do you secure secrets in Kubernetes?
+  27. etcd corruption scenario.
+  28. Application exposed publicly accidentally.
+  29. High pod eviction happening.
+  30. How do you perform blue-green deployment?
+  31. Implement canary deployment practically.
+  32. Write YAML for deployment + service.
+  33. Create HPA practically.
+  34. Debug failing liveness probe.
+  35. Troubleshoot Kubernetes worker node issue live.
+
+Terraform — Most Asked Interview Questions
+  1. What is Terraform?
+  2. Advantages of Terraform?
+  3. What is Infrastructure as Code?
+  4. What are providers?
+  5. What is a Terraform state file?
+  6. Why is remote state important?
+  7. Difference between terraform plan and apply?
+  8. What is terraform init?
+  9. What is terraform refresh?
+  10. What are modules?
+  11. Benefits of Terraform modules?
+  12. What are variables?
+  13. What are outputs?
+  14. What is interpolation?
+  15. What are workspaces?
+  16. What is taint in Terraform?
+  17. What is drift?
+  18. How does Terraform detect changes?
+  19. What is dependency in Terraform?
+  20. How do you handle secrets?
+  21. What is backend in Terraform?
+  22. Difference between local and remote backend?
+  23. What is locking in Terraform?
+  24. How do you destroy infrastructure?
+  25. What is lifecycle block?
+  26. Difference between count and for_each?
+  27. How do you import existing resources?
+  28. What happens if state file is deleted?
+  29. How do you manage multiple environments?
+  30. How do you troubleshoot Terraform failures?
+  31. Terraform vs CloudFormation?
+  32. Terraform vs Ansible?
+  33. What are provisioners?
+  34. What is immutable infrastructure?
+  35. Best practices for Terraform?
+
+Terraform — Scenario-Based + Practical Questions
+  1. Terraform apply failed midway. What now?
+  2. State file corrupted. Recovery process?
+  3. Two engineers changed same infra simultaneously.
+  4. How do you prevent accidental destroy?
+  5. Resource deleted manually from cloud console.
+  6. Drift detected between infra and Terraform.
+  7. Terraform state locked issue.
+  8. Infrastructure change applied to wrong environment.
+  9. Secrets exposed in Terraform files.
+  10. Terraform module version conflict.
+  11. Remote backend inaccessible.
+  12. How do you migrate local state to S3 backend?
+  13. Existing infrastructure needs import into Terraform.
+  14. How do you manage prod vs dev environments?
+  15. How do you rollback infrastructure changes?
+  16. Terraform created duplicate resources.
+  17. Dependency issue between resources.
+  18. How do you secure Terraform pipelines?
+  19. Multi-region deployment using Terraform.
+  20. Cloud resource quota exceeded.
+  21. Terraform apply takes too long.
+  22. Dynamic scaling infra using Terraform.
+  23. State mismatch troubleshooting.
+  24. How do you manage secrets practically?
+  25. Terraform plan shows unexpected changes.
+  26. Write Terraform for EC2/VM creation.
+  27. Create VPC/VNet practically.
+  28. Create reusable Terraform module.
+  29. Write Terraform for Kubernetes cluster.
+  30. Explain real project architecture using Terraform.
+  31. CI/CD integration with Terraform.
+  32. Terraform vs Ansible in real scenarios.
+  33. Troubleshoot failed provider authentication.
+  34. Zero downtime infra update scenario.
+  35. How do you implement Infrastructure as Code best practices?
+
+GitHub Actions — Most Asked Interview Questions
+  1. What is GitHub Actions?
+  2. Difference between GitHub Actions and Jenkins?
+  3. What is a workflow?
+  4. What is a runner?
+  5. Difference between GitHub-hosted and self-hosted runner?
+  6. What is YAML in GitHub Actions?
+  7. What triggers workflows?
+  8. What are jobs and steps?
+  9. What are actions?
+  10. What are reusable workflows?
+  11. How do secrets work?
+  12. How do you secure pipelines?
+  13. How do you deploy to Kubernetes?
+  14. How do you build Docker images?
+  15. How do you trigger workflows manually?
+  16. What is matrix build?
+  17. How do artifacts work?
+  18. How do caching mechanisms work?
+  19. What is CI/CD?
+  20. Explain your CI/CD pipeline.
+  21. How do approvals work?
+  22. How do you rollback deployments?
+  23. How do you integrate Terraform?
+  24. How do you integrate Docker?
+  25. How do you troubleshoot failed pipelines?
+  26. How do environment variables work?
+  27. What is workflow_dispatch?
+  28. What are GitHub environments?
+  29. How do branch protections help CI/CD?
+  30. GitHub Actions vs GitLab CI?
+  31. How do you optimize pipeline speed?
+  32. How do notifications work?
+  33. What is a composite action?
+  34. How do you use OIDC authentication?
+  35. Best practices for GitHub Actions?
+
+GitHub Actions — Scenario-Based + Practical Questions
+  1. Pipeline suddenly failing after working earlier.
+  2. GitHub Actions runner offline.
+  3. Deployment failed after successful build.
+  4. Secrets leaked in logs accidentally.
+  5. Workflow taking too long.
+  6. Parallel jobs failing randomly.
+  7. Docker image build failing.
+  8. Kubernetes deployment step failing.
+  9. Self-hosted runner disk full.
+  10. Workflow triggered unexpectedly.
+  11. Branch protection bypass issue.
+  12. Rollback deployment through CI/CD.
+  13. Multi-environment deployment pipeline.
+  14. Manual approval before production deploy.
+  15. How do you secure CI/CD pipelines?
+  16. Artifact missing between stages.
+  17. Cache corruption issue.
+  18. GitHub API rate limit exceeded.
+  19. Build works locally but fails in pipeline.
+  20. Dependency vulnerability detected.
+  21. Pipeline optimization scenario.
+  22. How do you handle environment variables?
+  23. Dynamic version tagging practical.
+  24. Trigger workflows between repositories.
+  25. Integrate Terraform in GitHub Actions.
+  26. Integrate Helm deployment practically.
+  27. Write complete CI/CD YAML.
+  28. Docker build and push practical.
+  29. Deploy app to Kubernetes using Actions.
+  30. Troubleshoot failed release deployment.
+  31. How do you implement GitOps?
+  32. Auto rollback on deployment failure.
+  33. Multi-branch deployment strategy.
+  34. Blue-green deployment via pipeline.
+  35. Explain your end-to-end DevOps pipeline practically.
+
+Helm — Most Asked Interview Questions
+  1. What is Helm?
+  2. Why Helm is used?
+  3. What is a Helm chart?
+  4. Structure of Helm chart?
+  5. What is values.yaml?
+  6. What are templates?
+  7. What is Helm repository?
+  8. Difference between Helm v2 and v3?
+  9. What is Tiller?
+  10. How do you install a chart?
+  11. How do you upgrade a release?
+  12. How do you rollback a release?
+  13. What is Helm dependency?
+  14. What is chart versioning?
+  15. Difference between chart and release?
+  16. How do you override values?
+  17. How do secrets work in Helm?
+  18. What are hooks in Helm?
+  19. What is Helm lint?
+  20. How do you debug Helm templates?
+  21. How does Helm help DevOps?
+  22. What are subcharts?
+  23. What is templating in Helm?
+  24. Difference between kubectl apply and Helm?
+  25. What is Helm package?
+  26. How do you create custom charts?
+  27. How do you manage environments?
+  28. How does rollback work?
+  29. What are common Helm issues?
+  30. How do you integrate Helm with Argo CD?
+
+Helm — Scenario-Based + Practical Questions
+  1. Helm upgrade failed in production.
+  2. Rollback Helm release practically.
+  3. values.yaml not applying correctly.
+  4. Helm chart works in dev but not prod.
+  5. Secret handling in Helm.
+  6. Template rendering issue troubleshooting.
+  7. Chart dependency conflict.
+  8. Multiple environment management.
+  9. Dynamic values injection scenario.
+  10. Kubernetes resources duplicated after Helm install.
+  11. Helm release stuck in pending state.
+  12. Invalid YAML generated from templates.
+  13. Upgrade caused downtime.
+  14. How do you manage chart versions?
+  15. Shared chart across teams scenario.
+  16. How do you package custom Helm chart?
+  17. Migrate kubectl manifests to Helm.
+  18. Inject environment-specific configs.
+  19. Helm hooks practical use case.
+  20. Integrate Helm with Argo CD.
+  21. Debug failed Helm deployment.
+  22. Write custom Helm chart practically.
+  23. Deploy NGINX using Helm.
+  24. Secure secrets in Helm deployments.
+  25. Use Helm in CI/CD pipeline.
+  26. Compare Kustomize vs Helm.
+  27. Helm rollback troubleshooting.
+  28. Remove old unused releases.
+  29. How do you lint Helm charts?
+  30. Production Helm best practices.
+
+Argo CD — Most Asked Interview Questions
+  1. What is Argo CD?
+  2. What is GitOps?
+  3. Benefits of GitOps?
+  4. How does Argo CD work?
+  5. Difference between CI and CD?
+  6. How does synchronization work?
+  7. What is desired state?
+  8. What is drift detection?
+  9. What are Argo CD applications?
+  10. What is auto-sync?
+  11. How does rollback work?
+  12. How do you deploy Helm charts?
+  13. How does Argo CD integrate with Kubernetes?
+  14. What repositories are supported?
+  15. What is application health status?
+  16. What is pruning?
+  17. Difference between sync and refresh?
+  18. How do you manage secrets?
+  19. What RBAC features exist?
+  20. How do you troubleshoot sync failures?
+  21. What is App of Apps pattern?
+  22. What is declarative deployment?
+  23. Argo CD vs FluxCD?
+  24. How does Argo CD improve auditing?
+  25. What are sync waves?
+  26. What is self-healing?
+  27. How do notifications work?
+  28. How do you handle multi-cluster deployments?
+  29. Common Argo CD architecture components?
+  30. Best practices for GitOps?
+
+Argo CD — Scenario-Based + Practical Questions
+  1. Argo CD app out of sync.
+  2. Git repo updated but deployment not happening.
+  3. Auto-sync not working.
+  4. Rollback failed deployment using Argo CD.
+  5. Kubernetes cluster unreachable from Argo CD.
+  6. Drift detected repeatedly.
+  7. Multiple teams managing same cluster.
+  8. Git merge conflict affecting deployments.
+  9. Application stuck in progressing state.
+  10. Helm chart deployment failing in Argo CD.
+  11. Secret management in GitOps.
+  12. Argo CD UI inaccessible.
+  13. RBAC access issue troubleshooting.
+  14. Multi-cluster deployment scenario.
+  15. Disaster recovery using GitOps.
+  16. Argo CD sync causing downtime.
+  17. App of Apps implementation.
+  18. Kubernetes manual changes overwritten.
+  19. Git repo authentication failure.
+  20. Production deployment approval process.
+  21. How do you secure Argo CD?
+  22. Implement blue-green deployment with Argo CD.
+  23. Canary deployment with GitOps.
+  24. Troubleshoot sync waves issue.
+  25. Notification integration scenario.
+  26. CI pipeline integration with Argo CD.
+  27. Argo CD scaling issues.
+  28. Compare Argo CD vs Jenkins deployment.
+  29. Explain GitOps workflow practically.
+  30. Build complete GitOps architecture.
+
+Grafana & Prometheus — Most Asked Interview Questions
+  1. What is Prometheus?
+  2. What is Grafana?
+  3. Difference between monitoring and observability?
+  4. What are metrics?
+  5. What is time-series data?
+  6. What is scraping?
+  7. What are exporters?
+  8. What is Node Exporter?
+  9. What is PromQL?
+  10. What is Alertmanager?
+  11. How alerts work?
+  12. Difference between logs and metrics?
+  13. How do you monitor Kubernetes?
+  14. What dashboards have you created?
+  15. What is retention period?
+  16. How does service discovery work?
+  17. What is pull model in Prometheus?
+  18. Prometheus vs Nagios?
+  19. What is blackbox exporter?
+  20. How do you monitor applications?
+  21. What is high cardinality?
+  22. How do you reduce monitoring load?
+  23. How does Grafana connect to Prometheus?
+  24. What are labels in Prometheus?
+  25. How do you troubleshoot alerts?
+  26. What is recording rule?
+  27. What is alert rule?
+  28. What is Loki?
+  29. Grafana vs Kibana?
+  30. Best practices for monitoring setup?
+
+Grafana & Prometheus — Scenario-Based + Practical Questions
+  1. CPU alert firing continuously.
+  2. Prometheus target down troubleshooting.
+  3. Grafana dashboard showing no data.
+  4. High memory usage in Prometheus server.
+  5. Alert fatigue issue handling.
+  6. Node Exporter metrics missing.
+  7. Kubernetes monitoring setup practical.
+  8. Slow application performance investigation.
+  9. Alertmanager not sending notifications.
+  10. Storage retention issue.
+  11. Disk usage alert scenario.
+  12. Prometheus scraping failing.
+  13. Duplicate metrics issue.
+  14. Monitoring multi-cluster Kubernetes.
+  15. Grafana datasource connection failed.
+  16. How do you reduce alert noise?
+  17. Sudden traffic spike investigation.
+  18. Create SLA/SLO dashboards.
+  19. Memory leak detection scenario.
+  20. Container restart alert troubleshooting.
+  21. Monitor Kafka using Prometheus.
+  22. Monitor Terraform infrastructure.
+  23. Write PromQL query practically.
+  24. Create Grafana dashboard practically.
+  25. Configure alerts for Kubernetes pods.
+  26. Integrate Slack/email notifications.
+  27. Compare ELK vs Prometheus.
+  28. Blackbox exporter use case.
+  29. Root cause analysis using metrics.
+  30. Design enterprise monitoring architecture.
+
+Azure Cloud — Most Asked Interview Questions
+  1. What is Azure?
+  2. Difference between Azure and AWS?
+  3. What is Resource Group?
+  4. What is Azure Virtual Machine?
+  5. What is Azure VNet?
+  6. What is NSG?
+  7. What is Azure Load Balancer?
+  8. What is Azure Application Gateway?
+  9. What is AKS?
+  10. What is Azure Storage Account?
+  11. Types of Azure storage?
+  12. What is Azure Blob Storage?
+  13. What is Azure IAM?
+  14. What is Azure AD?
+  15. Difference between Azure AD and Active Directory?
+  16. What is Availability Set?
+  17. What is Availability Zone?
+  18. What is scaling in Azure?
+  19. What is Azure DevOps?
+  20. What is ARM template?
+  21. ARM vs Terraform?
+  22. What is Azure Monitor?
+  23. What is Log Analytics?
+  24. What is Azure Key Vault?
+  25. What is managed identity?
+  26. How do you secure Azure resources?
+  27. What is Azure Policy?
+  28. What is Azure VPN Gateway?
+  29. What is ExpressRoute?
+  30. Common Azure troubleshooting scenarios?
+
+Azure Cloud — Scenario-Based + Practical Questions
+  1. Azure VM unreachable.
+  2. NSG blocking traffic accidentally.
+  3. AKS pod communication issue.
+  4. Storage account inaccessible.
+  5. High Azure cloud bill troubleshooting.
+  6. Azure load balancer health probe failing.
+  7. Azure VM scaling scenario.
+  8. VPN Gateway connection issue.
+  9. Azure identity authentication failure.
+  10. Key Vault access denied.
+  11. Multi-region disaster recovery setup.
+  12. Azure deployment failed midway.
+  13. DNS resolution issue in Azure.
+  14. Azure VM disk full.
+  15. Azure monitoring alert scenario.
+  16. AKS cluster upgrade issue.
+  17. Private vs public subnet design.
+  18. Azure Policy blocking deployments.
+  19. Terraform deployment to Azure failed.
+  20. Secure production Azure environment.
+  21. Azure RBAC troubleshooting.
+  22. Application Gateway 502 errors.
+  23. Storage replication scenario.
+  24. Cost optimization practical case.
+  25. Migrate application from AWS to Azure.
+  26. Create AKS cluster practically.
+  27. Setup VNet and NSG practically.
+  28. Implement CI/CD in Azure.
+  29. Configure Azure monitoring.
+  30. Explain Azure production architecture.
+
+Kafka — Most Asked Interview Questions
+  1. What is Kafka?
+  2. Why Kafka is used?
+  3. What is event streaming?
+  4. What is a broker?
+  5. What is a topic?
+  6. What is partition?
+  7. What is replication?
+  8. What is ISR?
+  9. What is Zookeeper?
+  10. Kafka with or without Zookeeper?
+  11. What is a producer?
+  12. What is a consumer?
+  13. What is consumer group?
+  14. How does partitioning work?
+  15. How does Kafka ensure durability?
+  16. What is offset?
+  17. What happens if broker fails?
+  18. What is leader and follower?
+  19. What is retention period?
+  20. What is log compaction?
+  21. Kafka vs RabbitMQ?
+  22. Kafka vs traditional messaging?
+  23. How does scaling work?
+  24. What is exactly-once delivery?
+  25. What is at-least-once delivery?
+  26. How do you monitor Kafka?
+  27. Common Kafka performance issues?
+  28. How do you troubleshoot consumer lag?
+  29. What is Kafka Connect?
+  30. What is Schema Registry?
+  31. What is Kafka Streams?
+  32. How do you secure Kafka?
+  33. What are common Kafka commands?
+  34. How does replication factor work?
+  35. Best practices for Kafka operations?
+
+Kafka — Scenario-Based + Practical Questions
+  1. Kafka broker down scenario.
+  2. Consumer lag increasing continuously.
+  3. Messages missing in consumers.
+  4. Kafka topic growing too large.
+  5. High latency in Kafka cluster.
+  6. Producer unable to publish messages.
+  7. Kafka disk full issue.
+  8. Replication not working properly.
+  9. ISR shrinking continuously.
+  10. Zookeeper failure scenario.
+  11. Consumer group rebalance issue.
+  12. Duplicate message processing.
+  13. Kafka cluster scaling scenario.
+  14. Topic partition imbalance.
+  15. Kafka monitoring practical setup.
+  16. Secure Kafka cluster practically.
+  17. Retention policy tuning.
+  18. High throughput optimization.
+  19. Kafka Connect failure troubleshooting.
+  20. Schema Registry compatibility issue.
+  21. Consumer offset reset scenario.
+  22. Disaster recovery in Kafka.
+  23. Multi-datacenter Kafka setup.
+  24. Message ordering issue.
+  25. Real-time log processing architecture.
+  26. Deploy Kafka on Kubernetes.
+  27. Monitor Kafka using Prometheus/Grafana.
+  28. Compare Kafka vs RabbitMQ practically.
+  29. Build event-driven architecture example.
+  30. Troubleshoot production Kafka outage.
+
+Final Interview Tips
+  • Focus first on Kubernetes, Terraform, GitHub Actions, Helm, and Argo CD.
+  • Practice kubectl, helm, terraform, and GitHub Actions YAML daily.
+  • Be ready to explain real production incidents.
+  • Learn troubleshooting flow more than definitions.
+  • Prepare architecture explanation from your real projects.
+  • Practice whiteboard scenarios and root cause analysis.
+  • Revise CI/CD pipeline end-to-end.
+  • Practice Linux troubleshooting commands.
+  • Understand monitoring and observability concepts.
+  • Be confident while explaining production issues.

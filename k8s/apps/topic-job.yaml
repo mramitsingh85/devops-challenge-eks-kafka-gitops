@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+
+metadata:
+  name: create-posts-topic
+  namespace: kafka-demo
+
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+
+      containers:
+        - name: kafka-topic-create
+
+          image: confluentinc/cp-kafka:7.5.0
+
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Kafka..."
+              sleep 30
+
+              kafka-topics \
+                --create \
+                --if-not-exists \
+                --topic posts \
+                --bootstrap-server kafka-0.kafka.kafka-demo.svc.cluster.local:9092 \
+                --partitions 3 \
+                --replication-factor 2
+
+              echo "Topic created successfully"

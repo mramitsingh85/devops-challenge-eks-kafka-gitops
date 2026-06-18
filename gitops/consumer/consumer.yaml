@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: consumer
+  namespace: kafka-demo
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: consumer
+
+  template:
+    metadata:
+      labels:
+        app: consumer
+
+    spec:
+      containers:
+      - name: consumer
+
+        image: 498937706265.dkr.ecr.ap-south-1.amazonaws.com/kafka-consumer:v1
+        imagePullPolicy: IfNotPresent
+
+        env:
+        - name: KAFKA_BROKER_URL
+          value: kafka-0.kafka:9092
+
+        - name: KAFKA_TOPIC
+          value: posts
