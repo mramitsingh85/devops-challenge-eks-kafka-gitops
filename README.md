@@ -305,7 +305,7 @@ aws ecr describe-images \
 
 ---
 
-Message  send test
+Message  send test (Auto Heal by ArgoCD)
 
 Above is the test that has Autoheal feature via ArgoCD
 
