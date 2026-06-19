@@ -13,6 +13,8 @@ echo "=================================================="
 
 aws sts get-caller-identity
 
+#aws sts get-caller-identity
+
 echo ""
 echo "Deleting EKS Nodegroups..."
 
