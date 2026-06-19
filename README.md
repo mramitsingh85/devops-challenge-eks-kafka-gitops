@@ -95,6 +95,22 @@ DevOps-Challenge-main
 │
 └── bootstrap.sh
 ```
+
+Project status after Deployment. 
+
+```
+
+==================================================
+DEPLOYMENT COMPLETED SUCCESSFULLY
+==================================================
+ ~/DevOps-Challenge-main % kubectl get pods -n kafka-demo
+NAME                        READY   STATUS      RESTARTS        AGE
+consumer-5bc55cf695-pnn8m   1/1     Running     4 (8m52s ago)   9m49s
+kafka-0                     1/1     Running     0               9m49s
+kafka-1                     1/1     Running     0               9m48s
+producer-hzhwj              0/1     Completed   0               9m48s
+```
+
 ---
 
 Features
