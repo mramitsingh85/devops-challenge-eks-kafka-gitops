@@ -13,7 +13,7 @@ This project demonstrates a complete cloud-native DevOps implementation using:
 - Helm Package Management
 - Self-Healing Kubernetes Applications
 
-The solution provisions infrastructure, builds container images, deploys applications, and configures GitOps automation through a single bootstrap script.
+The solution provisions infrastructure, builds container images, deploys applications, and configures GitOps automation through a single deploy script.
 
 ---
 
@@ -93,22 +93,7 @@ DevOps-Challenge-main
 │   └── applications/
 │       └── kafka-demo.yaml
 │
-└── bootstrap.sh
-```
-
-Project status after Deployment. 
-
-```
-
-==================================================
-DEPLOYMENT COMPLETED SUCCESSFULLY
-==================================================
- ~/DevOps-Challenge-main % kubectl get pods -n kafka-demo
-NAME                        READY   STATUS      RESTARTS        AGE
-consumer-5bc55cf695-pnn8m   1/1     Running     4 (8m52s ago)   9m49s
-kafka-0                     1/1     Running     0               9m49s
-kafka-1                     1/1     Running     0               9m48s
-producer-hzhwj              0/1     Completed   0               9m48s
+└── deploy.sh
 ```
 
 ---
@@ -162,24 +147,24 @@ aws configure
 
 Terraform
 
-terraform version
+$ terraform version
 
 Kubectl
 
-kubectl version --client
+$ kubectl version --client
 
 Docker
 
-docker info
+$ docker info
 
 Helm
 
-helm version
+$ helm version
 
 Optional (Mac)
 
-brew install colima
-colima start
+$ brew install colima
+$ colima start
 
 ---
 
@@ -187,16 +172,16 @@ Deployment
 
 Clone the repository:
 
-git clone <repository-url>
-cd DevOps-Challenge-main
+$ git clone <repository-url>
+$ cd DevOps-Challenge-main
 
 Make the script executable:
 
-chmod +x bootstrap.sh
+$ chmod +x deploy.sh
 
 Run deployment:
 
-./bootstrap.sh
+$ ./deploy.sh
 
 The script automatically performs:
 
@@ -217,25 +202,34 @@ Verify Deployment
 
 Check Cluster
 
-kubectl get nodes
+$ kubectl get nodes
 
 Expected:
 
-NAME                           STATUS
-ip-xxx.xxx.xxx.xxx             Ready
-ip-xxx.xxx.xxx.xxx             Ready
+```
+
+==================================================
+DEPLOYMENT COMPLETED SUCCESSFULLY
+==================================================
+ ~/DevOps-Challenge-main % kubectl get pods -n kafka-demo
+NAME                        READY   STATUS      RESTARTS        AGE
+consumer-5bc55cf695-pnn8m   1/1     Running     4 (8m52s ago)   9m49s
+kafka-0                     1/1     Running     0               9m49s
+kafka-1                     1/1     Running     0               9m48s
+producer-hzhwj              0/1     Completed   0               9m48s
+```
 
 Check Pods
 
-kubectl get pods -A
+$ kubectl get pods -A
 
 Check Kafka Namespace
 
-kubectl get all -n kafka-demo
+$ kubectl get all -n kafka-demo
 
 Check ArgoCD Applications
 
-kubectl get application -n argocd
+$ kubectl get application -n argocd
 
 Expected:
 
@@ -247,7 +241,7 @@ Access ArgoCD
 
 Start port forwarding:
 
-kubectl port-forward svc/argocd-server -n argocd 8080:443
+$ kubectl port-forward svc/argocd-server -n argocd 8080:443
 
 Open:
 
@@ -259,7 +253,7 @@ admin
 
 Retrieve Password:
 
-kubectl get secret argocd-initial-admin-secret \
+$ kubectl get secret argocd-initial-admin-secret \
 -n argocd \
 -o jsonpath="{.data.password}" | base64 -d
 
@@ -269,11 +263,11 @@ Kafka Validation
 
 Watch Consumer Logs
 
-kubectl logs deployment/consumer -n kafka-demo -f
+$ kubectl logs deployment/consumer -n kafka-demo -f
 
 Send Test Messages
 
-kubectl exec -it kafka-0 -n kafka-demo -- bash
+$ kubectl exec -it kafka-0 -n kafka-demo -- bash
 
 Inside Kafka Pod:
 
@@ -295,11 +289,11 @@ GitOps Self-Healing Demonstration
 
 Delete the Consumer Deployment:
 
-kubectl delete deployment consumer -n kafka-demo
+$ kubectl delete deployment consumer -n kafka-demo
 
 Watch Resources:
 
-kubectl get pods -n kafka-demo -w
+$ kubectl get pods -n kafka-demo -w
 
 ArgoCD automatically recreates the deployment and restores the desired state.
 
@@ -309,13 +303,13 @@ ECR Verification
 
 Consumer Images:
 
-aws ecr describe-images \
+$ aws ecr describe-images \
 --repository-name kafka-consumer \
 --region ap-south-1
 
 Producer Images:
 
-aws ecr describe-images \
+$ aws ecr describe-images \
 --repository-name kafka-producer \
 --region ap-south-1
 
@@ -325,16 +319,16 @@ Message  send test (Auto Heal by ArgoCD)
 
 Above is the test that has Autoheal feature via ArgoCD
 
-kubectl delete job producer -n kafka-demo
+$ kubectl delete job producer -n kafka-demo
 
 To check message
 
-kubectl logs deployment/consumer -n kafka-demo -f
+$ kubectl logs deployment/consumer -n kafka-demo -f
 
 reset argo admin pass
 
 
-kubectl patch secret argocd-secret \
+$ kubectl patch secret argocd-secret \
 -n argocd \
 -p '{"stringData":{
 "admin.password":"$2a$10$hmtlh7OIu/kugugWkZikZOivkkxCaheX7q0qHKZTxdYEmH4Um704e",
@@ -345,10 +339,10 @@ kubectl patch secret argocd-secret \
 
 Monitoring Commands
 
-kubectl get nodes
-kubectl get pods -A
-kubectl get svc -A
-kubectl get application -n argocd
+$ kubectl get nodes
+$ kubectl get pods -A
+$ kubectl get svc -A
+$ kubectl get application -n argocd
 
 ---
 
